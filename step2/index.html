@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script src="https://cdn.bootcss.com/babel-standalone/7.0.0-beta.2/babel.min.js"></script>
+    <title>Document</title>
+    <style>
+        .my-test-class{
+            width: 100px;
+            height: 100px;
+            background-color: red;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id='app'></div>
+</body>
+</html>
+<script>
+    /**
+     * 创建一个html标签,并且设置属性
+    */
+    var container = document.getElementById('app');
+    function createElement(type,props){
+        if(!type)return;
+        var dom = null;
+        if(typeof type === 'string'){
+            dom = createDom(type);
+        }
+        if(props){
+            setProps(dom,props);
+        }
+
+        container.appendChild(dom);
+    }
+    /**
+     * 设置属性到dom
+    */
+    var EVENT_KEYS = /^on/i;  //判断是否为事件
+    function setProps(dom,props){
+        for(var attributeName in props){
+            var value = props[attributeName];
+            //如果是事件
+            if(EVENT_KEYS.test(attributeName)){
+                addEvent(dom,attributeName,value);
+            }else{
+                dom.setAttribute(attributeName,value);
+            }
+            
+        }
+    }
+    /**
+     * 绑定事件
+    */
+   function addEvent(element,eventName,fn){
+       eventName = eventName.toLowerCase().replace(/^on/,'');
+       if(window.addEventListener){
+           element.addEventListener(eventName,fn);
+       }else{
+            eventName = 'on'+eventName;
+            element.addEvent(eventName,fn);
+       }
+   }
+
+    /**
+     * 创建dom元素
+    */
+    function createDom(type){
+        var dom = null;
+        if(typeof type === 'string'){
+            dom = document.createElement(type);
+        }
+
+        return dom;
+    }
+
+
+
+    //do it
+    var props = {
+        class:'my-test-class',
+        onClick:function(){
+            alert(123);
+        }
+    }
+    createElement('span',props)
+</script>

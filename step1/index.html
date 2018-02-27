@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script src="https://cdn.bootcss.com/babel-standalone/7.0.0-beta.2/babel.min.js"></script>
+    <title>Document</title>
+</head>
+<body>
+    <div id='app'></div>
+</body>
+</html>
+<script>
+    /**
+     * 创建一个html标签
+    */
+    var container = document.getElementById('app');
+    function createElement(type){
+        if(!type)return;
+        if(typeof type === 'string'){
+            container.appendChild(createDom(type));
+        }
+    }
+
+    function createDom(type){
+        var dom = null;
+        if(typeof type === 'string'){
+            dom = document.createElement(type);
+        }
+
+        return dom;
+    }
+
+
+
+    //do it
+    createElement('span')
+</script>
