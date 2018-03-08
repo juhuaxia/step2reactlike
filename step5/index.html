@@ -248,7 +248,13 @@
                 target = target.parentNode;
                 continue;
             }
+            //e为自定义事件对象X，并且赋值其stopPropagation为()=>X.cancelBubble=true
+            //所以，当设置e.stopPropagation()的时候，其实设置该对象X的cancelBubble为true;
+            
             fn.call(target,e);
+            //判断X。cancelBubble是否为true。是break出循环
+            //由于一处阻止了冒泡，所以这一次的事件冒泡阶段全部结束。
+            //除非再次dispatchEvent。那么X将被重新定义
             target = target.parentNode;
         }
         updateQueue.isPending = false
