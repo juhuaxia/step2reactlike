@@ -241,9 +241,14 @@
         var target = e.target,
             type = e.type;
         updateQueue.isPending = true
+        var diyEvent;
         while(target){
             var eventMap = target.eventMap,
                 fn = eventMap && eventMap[type];
+            
+            if(!diyEvent){
+                diyEvent = createDiyEvent(e)
+            }
             if(!fn){
                 target = target.parentNode;
                 continue;
@@ -260,6 +265,25 @@
         updateQueue.isPending = false
         updateQueue.batchUpdate();
     }
+
+    function createDiyEvent(e){
+        var diyEvent = {};
+        const cancelBubble = ()=>diyEvent.cancelBuddle = true;
+        diyEvent.nativeEvent = e;
+        for(var k in e){
+            if(typeof e[k] !== "function"){
+                diyEvent[k] = e[k]
+            }else if(k === "stopPropagation" || k === "stopImmediatePropagation"){
+                diyEvent[k] = cancelBubble;
+            }else{
+                diyEvent[k] = e[k].bind(e);
+            }
+        }
+
+        return diyEvent;
+    }
+
+
 
     function render(vnode,container){
         var node = createvnode2el(vnode);
