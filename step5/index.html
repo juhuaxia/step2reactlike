@@ -110,11 +110,13 @@
         }
         function Klass(props){
             this.props = props;
+            this.state = this.getInitialState() || this.state //把state赋值给Klass
         }
         Klass.prototype = new Component();
         for(var k in options){
             Klass.prototype[k] = options[k];
         }
+        // Klass.prototype.getInitialState = getInitialState
         return Klass;
     }
 
@@ -175,6 +177,7 @@
             dom = createHtmlEl(vnode);
         }else{
             var component = new type(props);
+            // component.state = component.updater.getState();
             dom = createComponent(component)
         }
         return dom;
@@ -305,7 +308,7 @@
         render:function(){
             return (
                 <div className="test" onClick={()=>this.onclick()}>
-                    <ChildCls/>
+                    {this.state.name}
                 </div>
             )
         }
