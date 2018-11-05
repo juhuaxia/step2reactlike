@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <script src="https://cdn.bootcss.com/babel-standalone/7.0.0-beta.2/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.4/lodash.min.js"></script>
     <title>Document</title>
     <style>
         .my-test-class{
@@ -20,311 +21,548 @@
 </body>
 </html>
 <script type="text/babel">
-    var tagMap = {"a":"a","abbr":"abbr","address":"address","area":"area","article":"article","aside":"aside","audio":"audio","b":"b","base":"base","bdi":"bdi","bdo":"bdo","big":"big","blockquote":"blockquote","body":"body","br":"br","button":"button","canvas":"canvas","caption":"caption","cite":"cite","code":"code","col":"col","colgroup":"colgroup","data":"data","datalist":"datalist","dd":"dd","del":"del","details":"details","dfn":"dfn","dialog":"dialog","div":"div","dl":"dl","dt":"dt","em":"em","embed":"embed","fieldset":"fieldset","figcaption":"figcaption","figure":"figure","footer":"footer","form":"form","h1":"h1","h2":"h2","h3":"h3","h4":"h4","h5":"h5","h6":"h6","head":"head","header":"header","hgroup":"hgroup","hr":"hr","html":"html","i":"i","iframe":"iframe","img":"img","input":"input","ins":"ins","kbd":"kbd","keygen":"keygen","label":"label","legend":"legend","li":"li","link":"link","main":"main","map":"map","mark":"mark","menu":"menu","menuitem":"menuitem","meta":"meta","meter":"meter","nav":"nav","noscript":"noscript","object":"object","ol":"ol","optgroup":"optgroup","option":"option","output":"output","p":"p","param":"param","picture":"picture","pre":"pre","progress":"progress","q":"q","rp":"rp","rt":"rt","ruby":"ruby","s":"s","samp":"samp","script":"script","section":"section","select":"select","small":"small","source":"source","span":"span","strong":"strong","style":"style","sub":"sub","summary":"summary","sup":"sup","table":"table","tbody":"tbody","td":"td","textarea":"textarea","tfoot":"tfoot","th":"th","thead":"thead","time":"time","title":"title","tr":"tr","track":"track","u":"u","ul":"ul","var":"var","video":"video","wbr":"wbr","circle":"circle","clipPath":"clipPath","defs":"defs","ellipse":"ellipse","g":"g","image":"image","line":"line","linearGradient":"linearGradient","mask":"mask","path":"path","pattern":"pattern","polygon":"polygon","polyline":"polyline","radialGradient":"radialGradient","rect":"rect","stop":"stop","svg":"svg","text":"text","tspan":"tspan"}
-    //更新模块队列
-    var updateQueue = {
-        updaters:[],
-        isPending:false,
-        addUpdater:function(updater){
-            this.updaters.push(updater);
-        },
-        batchUpdate:function(){
-            this.isPending = true;
-            var updater = null;
-            while (updater = this.updaters.pop()) {
-                updater.updateComponent();
-            }
-            this.isPending = false;
-        }
-    };
-
-    //单个更新模块
-    function Updater (component){
-        this.component = component
-        this.isPending = false;
-        this.pendingStates = [];
-        this.state = {};
-    }
-
-    Updater.prototype.updateComponent = function(){
-        this.component.shouldUpdate(this.getState());
-    }
-    Updater.prototype.addState = function(state){
-        this.pendingStates.push(state);
-        this.doUpdate();
-    }
-    Updater.prototype.getState = function(){
-        var state = Object.assign({},this.component.state);
-        for(var i =0,l=this.pendingStates.length;i<l;i++){
-            var newState = this.pendingStates[i];
-            state = Object.assign({},state,newState);
-        }
-        return state;
-    }
-    Updater.prototype.doUpdate = function(){
-        updateQueue.isPending?updateQueue.addUpdater(this):this.updateComponent()
-    }
-
-    function Component(props){
-        this.updater = new Updater(this);
-        this.state = {};
-        this.props = {};
-    }
-
-    Component.prototype = {
-        isReactComponent:true,
-        update:function(){
-            //如果正在更新中，把state加入到updater，等下一回更新
-            if(this.updater.isPending){
-                this.updater.addState();
-                return;
-            }
-            var newVnode = createComponent(this);
-            
-        },
-        shouldUpdate:function(nextState){
-            var update = true;
-            if(this.shouldComponentUpdate){
-                update = this.shouldComponentUpdate(nextProps, nextState);
-            }
-            if(update === false){
-                return;
-            }
-            this.state = nextState;
-            this.update()
-        },
-        setState:function(newState){
-            this.updater.addState(newState)
-        }
-    }
-
     var React = {
-        createElement:createElement,
-        createClass:createClass,
-        render:render
+        createElement: createElement,
+        createClass: createClass,
+        render: render
     }
 
-    function createClass(options){
-        if(!options.render){
-            throw new Error('render of class must be a function');
-        }
-        function Klass(props){
-            this.props = props;
-            this.state = this.getInitialState() || this.state //把state赋值给Klass
-        }
-        Klass.prototype = new Component();
-        for(var k in options){
-            Klass.prototype[k] = options[k];
-        }
-        // Klass.prototype.getInitialState = getInitialState
-        return Klass;
+    var ReactDOM = {
+        render: render,
     }
 
-    function createElement(type,props,children){
-        console.log(typeof type);
-        var vtype = null;
-        if(typeof type === 'string'){
-            vtype = 'htmlel';
-        }else if(typeof type === 'function'){
-            vtype = 'component';
-        }else{
-            throw new Error('unknow type of element');
-        }
-
-        var componentProps = {};
-        if(props){
-            for(var k in props){
-                componentProps[k] = props[k];
-            };
-        }
-
-        // if(children){
-        //     componentProps.children = children;
-        // }
-        //修复多个子元素的问题
-        //改为如下
-        
-        if(arguments.length>3){//多个子元素，至少一个子元素的时候，算上type跟props，至少为3个参数
-            var componentChildren = [];
-            for(var i= 2,l=arguments.length;i<l;i++){
-                componentChildren[i-2] = arguments[i];
+    function createElement(type, props, children){
+        var vtype = null
+        if( typeof type === "string" ) {
+            vtype = "html"
+        }else if( typeof type === "function" ) {
+            if( type.prototype && type.prototype.isReactComponent ) {
+                vtype = "component"
+            }else {
+                vtype = "stateless"
             }
-            componentProps.children = componentChildren;
-        }else{
-            componentProps.children = children;
+        }else {
+            throw Error( "unknow type of element" )
         }
 
-        var vnode = createVnodeModal(vtype,type,componentProps);
-        return vnode;
+        var finalProps = {}
+        if( props ){
+            for( var k in props ){
+                finalProps[k] = props[k]
+            }
+        }
+
+        //多个chidlren的时候处理下
+        if( arguments.length > 3 ){
+            var componentChildren = []
+            for( var i = 2, l = arguments.length; i < l; i++) {
+                componentChildren[i-2] = arguments[i]
+                finalProps.children = componentChildren
+            }
+        }else {
+            finalProps.children = children
+        }
+
+        var vnode = createVnode(type, vtype, finalProps)
+
+        return vnode
+
     }
 
-    function createVnodeModal(vtype,type,props){
+    function createVnode(type, vtype, props) {
         var vnode = {
-            vtype:vtype,
-            type:type,
-            props:props
+            type: type,
+            vtype: vtype,
+            props: props
         }
-
-        return vnode;
+        return vnode
     }
 
-    function createvnode2el(vnode){
-        var vtype = vnode.vtype,
-            type = vnode.type,
-            props = vnode.props;
-        var dom = null;
-        if(!vtype || vtype === 'htmlel'){//无论何种创建，最后都会到这步判断，生成html标签
-            dom = createHtmlEl(vnode);
-        }else{
-            var component = new type(props);
-            // component.state = component.updater.getState();
-            dom = createComponent(component)
+    //vnode -> html dom
+    function initVnode(vnode) {
+        var vtype = vnode.vtype
+        var node = null
+
+        if( vtype === undefined) {
+            node = document.createTextNode(vnode)
+        }else if( vtype === "html" ) {
+            node = initVelement(vnode)
+        }else if( vtype === "component" ) {
+            node = initVcomponent(vnode)
         }
-        return dom;
+        vnode._component && (node._component = vnode._component)
+        return node
     }
 
-    function createHtmlEl(vnode){
-        var type = vnode.type,
-            props = vnode.props,
-            dom = null;
-        if(tagMap[type]){
-            dom = document.createElement(type);
-        }else{
-            dom = document.createTextNode(vnode);
+    function initVelement(vnode) {
+        var type = vnode.type
+        var props = vnode .props
+        var node = document.createElement(type)
+        node._component = vnode._component
+        var children = node.vchildren = filterChildren(vnode.props.children) //将vchildren给到node
+        if( children ) {
+            initVchildren(node, children)
         }
-        setProps(dom,props);
-        return dom;
+        setProps(node, props)
+        return node
     }
 
-    //在component内update的时候，component为构造函数，跟type一样
-    //所以需要拆分，type为构造函数，放到上一层createvnode2el去new
-    function createComponent(component){
-            vnode = component.render();
-        var dom = createvnode2el(vnode);
-        return dom;
+    //去除为false的节点
+    function filterChildren(vchildren) {
+        if( !vchildren ) return
+        var children = []
+        for( var i = 0, l = vchildren.length; i < l; i++ ){
+            var child = vchildren[i]
+            //jsx内如果 (true && <div>)不成立，会默认编译返回一个布尔值false
+            if( child && typeof child !== "boolean" ) {
+                children[children.length] = child
+            }
+        }
+        return children
     }
 
-    var EVENT_KEYS = /^on/i;  //判断是否为事件
-    function setProps(el,props){
-        for(var attributeName in props){
-            var value = props[attributeName];
-            if(EVENT_KEYS.test(attributeName)){
-                addEvent(el,attributeName,value);
-            }else if(attributeName === 'children'){
-                createChildrenNode(value,el);
-            }else{
-                el.setAttribute(attributeName,value);
+    var pendingVComponents = []  //存放更新中的component，最终当rootNode插入到DOM中之后清空，并且触发里面所有component的didMount事件
+    function initVcomponent(vnode) {
+        var Componnet = vnode.type
+        var props = vnode.props
+        var Vcomponent = new Componnet(props)
+        //lifecycle componentWillMout
+        if( Vcomponent.componentWillMount ) {
+            Vcomponent.componentWillMount()
+        }
+        var vnode = reanderComponent(Vcomponent)
+        Vcomponent._store.vnode = vnode
+        pendingVComponents.push(Vcomponent)
+        vnode._component = Vcomponent  //没有更新队列的处理，把component实例传过去，以便后续触发updater更新
+        var node = initVnode(vnode)
+        node._component = vnode._component  //没有更新队列的处理，把component实例传过去，以便后续触发updater更新
+        Vcomponent._store.node = node
+        return node
+    }
+
+    function reanderComponent(component) {
+        return component.render()
+    }
+
+    function initVchildren(node, children) {
+        //防止chidlren === string
+        if( !(children instanceof Array) ){
+            children = [children]
+        }
+        for( var i= 0, l = children.length; i < l; i++) {
+            var child = children[i]
+            // if( child && typeof child !== "boolean"){
+                if( typeof child === "object" ){
+                    child._component = node._component
+                }
+                var childVnode = initVnode(child)
+                childVnode._component = node._component
+                node.appendChild(childVnode)
+            // }
+        }
+    }
+
+    //render to dom
+    function render(element, container) {
+        var htmlElement = initVnode(element)
+        container.appendChild(htmlElement)
+        clearPendingVComponents()
+    }
+    //触发组件的componentDidMount,并且清空pendingVComponents
+    function clearPendingVComponents() {
+        var components = pendingVComponents
+        pendingVComponents = []
+        for( var i = 0, l = components.length; i < l; i++) {
+            var Vcomponent = components[i]
+            if( Vcomponent.componentDidMount ){
+                Vcomponent.componentDidMount()
             }
         }
     }
 
-    function createChildrenNode(children,parentNode){
-        if(!(children instanceof Array)){
-            children = [children];
-        }
-        for(var i=0,l=children.length;i<l;i++){
-            var child = children[i];
-            parentNode.appendChild(createvnode2el(child));
-        }
-    }
-
-
-    var bindedEventMap={};
-    function addEvent(el,eventName,fn){
-        eventName = eventName.toLowerCase().replace(/^on/,'');
-        el.eventMap = el.eventMap || (el.eventMap = {});
-        el.eventMap[eventName] = fn;
-        if(!bindedEventMap[eventName]){
-            document.addEventListener(eventName, dispatchEvent,false);
-            bindedEventMap[eventName] = true;
+    //设置属性到dom node
+    var EVENT_KEYS = /^on/i  //判断是否为事件
+    function setProps(node, props) {
+        for( var attributeName in props ){
+            //jsx内 children由babel编译自动进入createElement
+            if( attributeName !== "children" ){
+                var prop = props[attributeName]
+                if( EVENT_KEYS.test(attributeName) ) {
+                    var eventName = attributeName.toLowerCase().replace(/^on/,'')
+                    bindEvent(node, eventName, prop)
+                }else {
+                    node.setAttribute(attributeName, prop)
+                }
+            }
         }
     }
 
-    function dispatchEvent(e){
+    var bindedEventMap = {}
+    function bindEvent(el, eventName, callback) {
+        el.eventMap = el.eventMap || ( el.eventMap = {} )
+        el.eventMap[eventName] = callback
+        if( !bindedEventMap[eventName] ){
+            document.addEventListener(eventName, dispatchEvent, false)
+            bindedEventMap[eventName] = true
+        }
+    }
+
+    function dispatchEvent(e) {
         var target = e.target,
             type = e.type;
-        updateQueue.isPending = true
-        var diyEvent;
-        while(target){
+        
+        var diyEvent = null;//为了处理阻止冒泡以及scope的绑定
+        var updater = target._component._updater
+        updater.ispending = true
+        while (target) {
             var eventMap = target.eventMap,
-                fn = eventMap && eventMap[type];
-            
-            if(!diyEvent){
+                callback = eventMap && eventMap[type]
+            if(!callback){
+                target = target.parentNode
+                continue
+            }
+            if( !diyEvent ){
                 diyEvent = createDiyEvent(e)
             }
-            if(!fn){
-                target = target.parentNode;
-                continue;
+            callback.call(target, diyEvent)
+            if( diyEvent._cancelBubble ){
+                break
             }
-            //e为自定义事件对象X，并且赋值其stopPropagation为()=>X.cancelBubble=true
-            //所以，当设置e.stopPropagation()的时候，其实设置该对象X的cancelBubble为true;
-            
-            fn.call(target,e);
-            //判断X。cancelBubble是否为true。是break出循环
-            //由于一处阻止了冒泡，所以这一次的事件冒泡阶段全部结束。
-            //除非再次dispatchEvent。那么X将被重新定义
-            target = target.parentNode;
+            target = target.parentNode
         }
-        updateQueue.isPending = false
-        updateQueue.batchUpdate();
+        updater.ispending = false
+        updater.emitUpdate()
     }
 
-    function createDiyEvent(e){
-        var diyEvent = {};
-        const cancelBubble = ()=>diyEvent.cancelBuddle = true;
-        diyEvent.nativeEvent = e;
-        for(var k in e){
-            if(typeof e[k] !== "function"){
-                diyEvent[k] = e[k]
-            }else if(k === "stopPropagation" || k === "stopImmediatePropagation"){
-                diyEvent[k] = cancelBubble;
-            }else{
-                diyEvent[k] = e[k].bind(e);
+    function createDiyEvent(e) {
+        var diyEvent = {}
+        var cancelBubble = function() {
+            //自定义cancelBubble字段，用于阻止冒泡
+            diyEvent._cancelBubble = true
+        }
+        diyEvent.nativeEvent = e
+        for( var k in e ){
+            var eventAttr = e[k]
+            if( typeof eventAttr !== "function" ) {
+                diyEvent[k] = eventAttr
+            }else if( k === "stopPropagation" || k === "stopImmediatePropagation" ) {
+                //如果用户执行e.stopPropagation()，执行自定义方法，改为true
+                diyEvent[k] = cancelBubble
+            }else {
+                diyEvent[k] = eventAttr.bind(e)
             }
         }
-
-        return diyEvent;
+        return diyEvent
     }
 
-
-
-    function render(vnode,container){
-        var node = createvnode2el(vnode);
-        container.appendChild(node);
+    //createClass
+    function createClass(options) {
+        if( typeof options.render !== "function" ){
+            throw Error( " render is not function ")
+        }
+        function Clazz(props) {
+            Component.call(this, props)
+            this.constructor = Clazz
+            setScope(this, Clazz.prototype)
+            this.state = typeof this.getInitialState === "function" ? this.getInitialState() : this.state
+        }
+        Clazz.prototype = new Component()
+        for( var k in options ){
+            Clazz.prototype[k] = options[k]
+        }
+        return Clazz
+    }
+    function setScope(target, source) {
+        for( var k in source ){
+            if( source.hasOwnProperty(k) ){
+                if( typeof source[k] === "function" ){
+                    target[k] = source[k].bind(target)
+                }
+            }
+        }
     }
 
-    //test demo
-    var TestCls = React.createClass({
-        getInitialState:function(params) {
+    //组件类
+    function Component(props) {
+        this._updater = new Updater(this)
+        this.state = {}
+        this.props = props
+        this._store = {}   //用于存放nextState, nextProps
+    }
+    Component.prototype = {
+        isReactComponent: true,
+        forceUpdate: function() {
+            if( this._updater.ispending === true ) {
+                this._updater.addState(this.state)
+                return
+            }
+            var nextState = this._store.state || this.state,
+                vnode = this._store.vnode,
+                node = this._store.node
+            if( this.componentWillUpdate ) {
+                this.componentWillUpdate(nextState)
+            }
+            this.state = nextState
+            var newVnode = reanderComponent(this)
+            node.newVchildren = filterChildren(newVnode.props.children)
+            diffNodes(newVnode, vnode, node)
+        },
+        setState: function(nextState, callback) {
+            this._updater.addState(nextState)
+            this._updater.addCallback(callback)
+        },
+    }
+
+    //更新器类
+    function Updater(ownerComponent) {
+        this.ownerComponent = ownerComponent //所属component
+        this.pendingStates = []
+        this.pendingCallbacks = []
+        this.ispending = false
+    }
+    Updater.prototype = {
+        emitUpdate: function() {
+            this.updateComponent()
+        },
+        //通知所属component进行update
+        updateComponent: function() {
+            if( this.pendingStates.length > 0 ) {
+                var nextState = this.getState()
+                shouldUpdate(this.ownerComponent, nextState, this.clearCallbacks)
+            }
+        },
+        addState: function(nextState) {
+            this.pendingStates.push(nextState)
+            // if( !this.ispending ){
+            //     this.emitUpdate()
+            // }
+        },
+        getState: function() {
+            var state = this.ownerComponent.state
+            state = _.assignIn({},state)
+            for( var i = 0, l = this.pendingStates.length; i < l; i++){
+                var nextState = this.pendingStates[i]
+                _.assignIn(state, nextState)
+            }
+            this.pendingStates = []
+            return state
+        },
+        addCallback: function(callback) {
+            this.pendingCallbacks.push(callback)
+        },
+        clearCallbacks: function() {
+            for( var i = 0, l = this.pendingCallbacks.length; i < l; i++ ) {
+                var callback = this.pendingCallbacks[i]
+                callback.call(this.ownerComponent)
+            }
+        }
+    }
+
+    function shouldUpdate(component, nextState, clearCallbacks) {
+        var shouldComponentUpdate = true
+        //shouldComponentUpdate生命周期
+        if( component.shouldComponentUpdate ){
+            shouldComponentUpdate = component.shouldComponentUpdate()
+        }
+        if( shouldComponentUpdate === false ){
+            return
+        }
+        var store = component._store
+        store.state = nextState
+        component.forceUpdate(clearCallbacks)
+    }
+
+    function diffNodes(newVnode, vnode, node) {
+        var newNode = node
+        //react的diff对比简单粗暴。只要某一层不同，连带children全部重新render
+        if( !newVnode ) {
+            //新的vnode不存在，表示被删除
+            //待实现: destoryVnode()删除virtual dom中的node
+            node.parentNode.removeChild(node)
+        }else if( newVnode.type !== vnode.type || newVnode.key !== vnode.key ) {
+            //表示节点被替换掉了
+            //destoryVnode()删除virtual dom中的node
+            newNode = initVnode(newVnode)
+            node.parentNode.replaceChild(newNode, node)
+        }else if( newVnode !== vnode ) {
+            //节点不同（children发生了改变，props改变等等，都会进来）
+            newNode = updateVnode(newVnode, vnode, node)
+        }
+    }
+
+    function updateVnode(newVnode, vnode, node) {
+        var updates = []
+        var creates = []
+        var removes = []
+        diffChildren(newVnode, vnode, node, creates, removes, updates)
+        //当前只考虑纯文本children
+        //update
+        for( var i = 0, l = updates.length; i < l; i++ ) {
+            var updateItem = updates[i]
+            if( updateItem ) {
+                var node = updateItem.node,
+                    newVnode = updateItem.newVnode
+                node.replaceData(0, node.length, newVnode)
+            }
+        }
+        //create
+        for( var i = 0, l = creates.length; i < l; i++ ) {
+            var createItem = creates[i]
+            if( createItem ) {
+                var newVnode = createItem.newVnode,
+                    parentNode = createItem.parentNode,
+                    index = createItem.index
+                var node = initVnode(newVnode)
+                parentNode.insertBefore(node, parentNode.childNodes[index])
+            }
+        }
+        //remove
+        for( var i = 0, l = removes.length; i < l; i++ ) {
+            var removeItem = removes[i],
+                vnode = removeItem.vnode,
+                node = removeItem.node
+                //destoryVnode()删除virtual dom中的node
+                node.parentNode.removeChild(node)
+        }
+    }
+
+    function diffChildren(newVnode, vnode, node, creates, removes, updates) {
+        var childNodes = node.childNodes
+        var vchildren = node.vchildren
+        var newVchildren = node.newVchildren
+        /*
+            1.先对比节点是否相同，相同就放入到update中，（因为基于react父节点不同，子节点全部reredner。所以即使节点相同，也需要进行update）
+            2.再对比节点，如果2个节点type,key都相等，则进行更新操作
+            3.剩余的，不在updates里面的newVchildren节点都是新增的
+        */
+       if( vchildren.length === 0 ) {
+           //那么 newVchildren里面的节点都是新增的
+       }else if( newVchildren.length === 0 ) {
+           //那么vchildren都应该被删除
+       }
+
+       //节点相同
+        for( var i = 0, l = vchildren.length; i < l; i++ ) {
+            var vchild = vchildren[i]
+            for( var j = 0, len = newVchildren.length; j < len; j++ ) {
+                var newVchild = newVchildren[j]
+                //如果updates里面已经有了改节点那么直接跳过
+                if( updates[j] ) {
+                    continue
+                }
+                if( vchild === newVchild ) {
+                    updates[j] = {
+                        shouldIgnore: true,
+                        newVnode: newVchild,
+                        vnode: vchild,
+                        node: childNodes[i]
+                    }
+                    vchildren[i] = null   //相等了，所以设为null，防止进行type和key对比的时候再次进判断
+                    //相等了就不需要再进行下一个节点的对比了，一个节点只会跟有且只有一个节点相等
+                    break
+                }
+            }
+        }
+        
+        //节点类型 key相同
+        for( var i = 0 ,l = vchildren.length; i < l; i++ ) {
+            var vchild = vchildren[i]
+            //在上个循环中因为已经添加入update，所以设为null，不再进行下去,
+            if( !vchild ) {
+                continue
+            }
+            var isDelete = true
+            for( var j = 0, len = newVchildren.length; j < len; j++ ) {
+                var newVchild = newVchildren[j]
+                //如果updates里面已经有了改节点那么直接跳过
+                if( updates[j] ) {
+                    continue
+                }
+                //疑虑： 如果当前节点type key 都相等，但是其实不是一个节点
+                //比如 1号位本来是<div class="a"></div>.
+                //现在1号位插入一个div,变成<div class="b"></div> <div class="a"></div>
+                //那么 将vnode中的a div更新为b div, newvnode中的 a div变成新增
+                if( vchild.type === newVchild.type && vchild.key === newVchild.key ) {
+                    updates[j] = {
+                        newVnode: newVchild,
+                        vnode: vchild,
+                        node: childNodes[i]
+                    }
+                    isDelete = false
+                    //相等了就不需要再进行下一个节点的对比了，一个节点只会跟有且只有一个节点同type同key
+                    break
+                }
+            }
+            if( isDelete ){
+                removes[removes.length] = {
+                    vnode: vchild,
+                    node: childNodes[i]
+                }
+            }
+        }
+
+        //处理新增
+        for( var i = 0, l = newVchildren.length; i < l; i++ ) {
+            //便利整个newVchildren，（整个updates都是以newVchildren的index作为索引的）
+            var update = updates[i]
+            //updates中不存在的，即使剩下的节点，都应该为新增的节点
+            if( !update ) {
+                var newVnode = newVchildren[i]
+                creates[i] = {
+                    newVnode: newVnode,
+                    parentNode: node,
+                    index: i  //记录插入到childNodes里面的位置，以便插入的位置正确
+                }
+            }
+        }
+
+        console.log(updates, creates)
+    }
+    
+    //test1 
+    var app = document.getElementById("app")
+
+    var Test = React.createClass({
+        // componentDidMount: function(){alert(2)},
+        getInitialState: function(){
             return {
-                name:123
+                a:1111,
+                b:6666,
+                add:true
             }
         },
-        onclick:function(){
+        onclick: function() {
             this.setState({
-                name:1111
+                a:333,
+                add:false
             })
+            // this.setState({
+            //     a:444
+            // })
+            this.setState({
+                a:555,
+                b:9999
+            })
+            // this.setState({
+            //     a:666
+            // })
         },
-        render:function(){
+        render: function() {
+            // alert(1)
             return (
                 <div className="test" onClick={()=>this.onclick()}>
-                    {this.state.name}
+                    {
+                        this.state.add && 3333
+                    }
+                    {this.state.b}
+                    2222
                 </div>
             )
         }
     })
 
-    var ChildCls = React.createClass({
-        render:function(){
-            return (<div className="children" onClick={this.props.clickEvent}>
-                    <a className="child1" >child child</a>
-                    <a className="child2">child2 child2</a>
-                    </div>)
-        }
-    })
-
-    React.render(
-        <TestCls/>,
-        document.getElementById('app')
+    ReactDOM.render(
+        <Test/>,
+        app
     )
 </script>
